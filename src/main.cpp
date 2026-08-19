@@ -10,6 +10,7 @@ const char *password = "123456789";
 DisplayBuilder display_builder;
 
 WiFiServer server(80);
+Web web = Web();
 
 void setup_wifi_connection()
 {
@@ -45,8 +46,7 @@ void setup()
 
 void loop()
 {
-  WiFiClient client = server.available();
-  Web web = Web();
+  WiFiClient client = server.accept();
 
   if (!client)
   {
