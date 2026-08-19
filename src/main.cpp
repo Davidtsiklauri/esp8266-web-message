@@ -13,49 +13,55 @@ void setup()
 {
   Serial.begin(9600);
 
-  // 1. Mount LittleFS File System
   if (!LittleFS.begin())
   {
     Serial.println("An error occurred while mounting LittleFS");
     return;
   }
 
-  // 2. Setup WiFi & Display
   wifi_adapter.setup_wifi_connection();
   display_builder.setup_display();
 
-  // 3. Start Web Server
   web.setup_routes();
 }
 
 void loop()
 {
-  // Allow background WiFi/TCP async processing to execute safely
   yield();
 
-  // Handle web-triggered display updates on the main thread (avoids I2C interrupt crashes)
   if (web.needsDisplayUpdate)
   {
     web.needsDisplayUpdate = false;
 
-    if (web.idleScreenEnabled)
+    switch (web.currentMode)
     {
+    case MODE_IDLE:
       display_builder.show_idle_screen();
-    }
-    else
-    {
+      break;
+
+    case MODE_WEATHER:
+      display_builder.show_weather_screen(24.0, "Sunny");
+      break;
+
+    case MODE_MESSAGE:
+    default:
       display_builder.update_display(web.currentMessage);
+      break;
     }
   }
 
-  // Periodic clock / idle screen refresh
-  if (web.idleScreenEnabled)
+  static unsigned long last_tick = 0;
+  if (millis() - last_tick >= 10000)
   {
-    static unsigned long last_tick = 0;
-    if (millis() - last_tick >= 10000)
+    last_tick = millis();
+
+    if (web.currentMode == MODE_IDLE)
     {
-      last_tick = millis();
       display_builder.show_idle_screen();
+    }
+    else if (web.currentMode == MODE_WEATHER)
+    {
+      display_builder.show_weather_screen(24.0, "Sunny");
     }
   }
 }

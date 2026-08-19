@@ -9,9 +9,8 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-// Define I2C pins according to your board specification
-#define OLED_SDA 12 // GPIO12 (D6)
-#define OLED_SCL 14 // GPIO14 (D5)
+#define OLED_SDA 12
+#define OLED_SCL 14
 
 class DisplayBuilder
 {
@@ -20,11 +19,13 @@ public:
     void setup_display();
     void update_display(String msg);
     void show_idle_screen();
+    void show_weather_screen(float temp, String condition);
 
 private:
     Adafruit_SSD1306 display;
     void calculate_text_size(String msg);
     void draw_happy_face();
+    void draw_weather_icon();
 };
 
 #endif // DISPLAY_BUILDER_H
