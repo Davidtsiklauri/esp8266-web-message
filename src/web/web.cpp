@@ -38,28 +38,17 @@ void Web::setup_routes()
     // 4. Handle /toggleIdle route
     server.on("/toggleIdle", HTTP_GET, [this](AsyncWebServerRequest *request)
               {
-        // Toggle between Clock (IDLE) and Message mode
-        if (this->currentMode == MODE_IDLE) {
-            this->currentMode = MODE_MESSAGE;
-        } else {
-            this->currentMode = MODE_IDLE;
-        }
-        this->needsDisplayUpdate = true;
-        request->redirect("/"); });
+                  this->currentMode = MODE_IDLE;
+                  this->needsDisplayUpdate = true;
+                  request->redirect("/"); });
 
     // 5. Handle /toggleWeather route
     // 5. Handle /toggleWeather route
     server.on("/toggleWeather", HTTP_GET, [this](AsyncWebServerRequest *request)
               {
-        // Toggle between Weather and Message mode
-        if (this->currentMode == MODE_WEATHER) {
-            this->currentMode = MODE_MESSAGE;
-        } else {
-            this->currentMode = MODE_WEATHER;
-        } // <--- You were missing this closing brace
-        
-        this->needsDisplayUpdate = true;
-        request->redirect("/"); });
+                  this->currentMode = MODE_WEATHER;
+                  this->needsDisplayUpdate = true;
+                  request->redirect("/"); });
     // Catch-all 404 handler
     server.onNotFound([](AsyncWebServerRequest *request)
                       { request->send(404, "text/plain", "Not found"); });
