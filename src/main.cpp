@@ -3,42 +3,20 @@
 #include "constants/styles.h"
 #include "web/web.h"
 #include "display/display.h"
-
-const char *ssid = "Wi-Fi ";
-const char *password = "123456789";
+#include "wifi/wifi_connection.h"
 
 DisplayBuilder display_builder;
 
 WiFiServer server(80);
 Web web = Web();
-
-void setup_wifi_connection()
-{
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(500);
-  }
-}
-
-void setup_server()
-{
-  server.begin();
-  Serial.println("Server started");
-  Serial.print("Use this URL: http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("/");
-}
+WifiAdapter wifi_adapter(server);
 
 void setup()
 {
   Serial.begin(9600);
 
-  setup_wifi_connection();
-  setup_server();
+  wifi_adapter.setup_wifi_connection();
+  wifi_adapter.setup_server();
   display_builder.setup_display();
 
   display_builder.update_display("hello World");
@@ -55,7 +33,6 @@ void loop()
 
   Serial.println("New client connected");
 
-  // Wait until client sends data
   while (!client.available())
   {
     delay(1);
