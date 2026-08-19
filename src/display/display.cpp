@@ -11,18 +11,40 @@ void DisplayBuilder::setup_display()
     Wire.begin(OLED_SDA, OLED_SCL);
     Wire.setClock(100000);
 
-    // SSD1306_SWITCHCAPVCC (value 0x02) replaces the magic number '2'
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
-        Serial.println("Failed at 0x3C, trying 0x3D...");
         if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3D))
         {
-            Serial.println("SSD1306 allocation failed at both addresses!");
+            Serial.println("SSD1306 allocation failed!");
             return;
         }
     }
 
-    Serial.println("OLED successfully initialized!");
+    // Configure timezone (e.g., UTC+4 for Georgia/Tbilisi: "GET-4")
+    // Replace "GET-4" with your local POSIX string if different (e.g. "EST5EDT" or "GMT0")
+    configTime("GET-4", "pool.ntp.org", "time.nist.gov", "time.google.com");
+
+    Serial.print("Synchronizing NTP time");
+
+    // Wait up to 10 seconds for NTP sync
+    time_t now = time(nullptr);
+    int retries = 0;
+    while (now < 1000000000L && retries < 40) // Wait until timestamp > year 2001
+    {
+        delay(250);
+        Serial.print(".");
+        now = time(nullptr);
+        retries++;
+    }
+
+    if (now > 1000000000L)
+    {
+        Serial.println("\nTime synced successfully!");
+    }
+    else
+    {
+        Serial.println("\nTime sync timed out! Check UDP/Internet connection.");
+    }
 }
 
 void DisplayBuilder::update_display(String msg)
@@ -72,4 +94,57 @@ void DisplayBuilder::calculate_text_size(String msg)
 
     display.setTextSize(best_size);
     display.setCursor(0, start_y);
+}
+
+void DisplayBuilder::draw_happy_face()
+{
+    // Draw Face Circle (Center: x=28, y=36, radius=22)
+    display.drawCircle(28, 36, 22, SSD1306_WHITE);
+
+    // Eyes
+    display.fillCircle(20, 28, 3, SSD1306_WHITE);
+    display.fillCircle(36, 28, 3, SSD1306_WHITE);
+
+    // Smile Arc
+    display.drawCircleHelper(28, 36, 12, 4, SSD1306_WHITE); // Bottom-left arc
+    display.drawCircleHelper(28, 36, 12, 8, SSD1306_WHITE); // Bottom-right arc
+}
+
+void DisplayBuilder::show_idle_screen()
+{
+    display.clearDisplay();
+
+    // 1. Draw Happy Face on Left Side
+    draw_happy_face();
+
+    // 2. Fetch Time
+    time_t now = time(nullptr);
+    struct tm *timeinfo = localtime(&now);
+
+    char timeStr[9];  // HH:MM
+    char dateStr[11]; // Mon DD
+
+    if (timeinfo->tm_year > 70)
+    {
+        strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
+        strftime(dateStr, sizeof(dateStr), "%b %d", timeinfo);
+    }
+    else
+    {
+        strcpy(timeStr, "Sync...");
+        strcpy(dateStr, "NTP...");
+    }
+
+    // 3. Render Clock on Right Side
+    display.setTextColor(SSD1306_WHITE);
+
+    display.setTextSize(2);
+    display.setCursor(60, 20);
+    display.print(timeStr);
+
+    display.setTextSize(1);
+    display.setCursor(60, 42);
+    display.print(dateStr);
+
+    display.display();
 }

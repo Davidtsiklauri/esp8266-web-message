@@ -19,10 +19,12 @@ public:
     DisplayBuilder();
     void setup_display();
     void update_display(String msg);
+    void show_idle_screen();
 
 private:
     Adafruit_SSD1306 display;
     void calculate_text_size(String msg);
+    void draw_happy_face();
 };
 
 #endif // DISPLAY_BUILDER_H

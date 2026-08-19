@@ -1,49 +1,61 @@
 #include <ESP8266WiFi.h>
 #include <Wire.h>
-#include "constants/styles.h"
+#include <LittleFS.h>
 #include "web/web.h"
 #include "display/display.h"
 #include "wifi/wifi_connection.h"
 
 DisplayBuilder display_builder;
-
-WiFiServer server(80);
-Web web = Web();
-WifiAdapter wifi_adapter(server);
+Web web;
+WifiAdapter wifi_adapter;
 
 void setup()
 {
   Serial.begin(9600);
 
+  // 1. Mount LittleFS File System
+  if (!LittleFS.begin())
+  {
+    Serial.println("An error occurred while mounting LittleFS");
+    return;
+  }
+
+  // 2. Setup WiFi & Display
   wifi_adapter.setup_wifi_connection();
-  wifi_adapter.setup_server();
   display_builder.setup_display();
 
-  display_builder.update_display("hello World");
+  // 3. Start Web Server
+  web.setup_routes();
 }
 
 void loop()
 {
-  WiFiClient client = server.accept();
+  // Allow background WiFi/TCP async processing to execute safely
+  yield();
 
-  if (!client)
+  // Handle web-triggered display updates on the main thread (avoids I2C interrupt crashes)
+  if (web.needsDisplayUpdate)
   {
-    return;
+    web.needsDisplayUpdate = false;
+
+    if (web.idleScreenEnabled)
+    {
+      display_builder.show_idle_screen();
+    }
+    else
+    {
+      display_builder.update_display(web.currentMessage);
+    }
   }
 
-  Serial.println("New client connected");
-
-  while (!client.available())
+  // Periodic clock / idle screen refresh
+  if (web.idleScreenEnabled)
   {
-    delay(1);
+    static unsigned long last_tick = 0;
+    if (millis() - last_tick >= 10000)
+    {
+      last_tick = millis();
+      display_builder.show_idle_screen();
+    }
   }
-
-  web.parse_user_input(client);
-
-  display_builder.update_display(web.currentMessage);
-
-  web.setup_html(client, web.currentMessage);
-
-  delay(1);
-  Serial.println("Client disconnected\n");
 }
