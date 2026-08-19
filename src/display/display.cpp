@@ -135,44 +135,119 @@ void DisplayBuilder::show_idle_screen()
     display.display();
 }
 
-// Weather Module
 void DisplayBuilder::draw_weather_icon()
 {
-    display.drawCircle(34, 22, 6, SSD1306_WHITE);
-    display.drawLine(34, 12, 34, 14, SSD1306_WHITE);
-    display.drawLine(42, 22, 44, 22, SSD1306_WHITE);
-    display.drawLine(40, 16, 42, 14, SSD1306_WHITE);
+    display.drawCircle(22, 9, 3, SSD1306_WHITE);
+    display.drawLine(22, 4, 22, 5, SSD1306_WHITE);
+    display.drawLine(27, 9, 28, 9, SSD1306_WHITE);
+    display.drawLine(25, 6, 26, 5, SSD1306_WHITE);
 
-    display.fillCircle(18, 40, 8, SSD1306_WHITE);
-    display.fillCircle(28, 35, 11, SSD1306_WHITE);
-    display.fillCircle(38, 40, 7, SSD1306_WHITE);
-    display.fillRect(18, 40, 20, 8, SSD1306_WHITE);
+    display.fillCircle(9, 20, 4, SSD1306_WHITE);
+    display.fillCircle(15, 17, 6, SSD1306_WHITE);
+    display.fillCircle(21, 20, 4, SSD1306_WHITE);
+    display.fillRect(9, 20, 12, 4, SSD1306_WHITE);
 }
 
-void DisplayBuilder::show_weather_screen(float temp, String condition)
+// 1. Mini Sun Icon
+void draw_mini_sun(Adafruit_SSD1306 &display, int x, int y)
+{
+    display.drawCircle(x + 5, y + 4, 3, SSD1306_WHITE);
+    display.drawLine(x + 5, y, x + 5, y + 1, SSD1306_WHITE);     // Top
+    display.drawLine(x + 5, y + 7, x + 5, y + 8, SSD1306_WHITE); // Bottom
+    display.drawLine(x + 1, y + 4, x + 2, y + 4, SSD1306_WHITE); // Left
+    display.drawLine(x + 8, y + 4, x + 9, y + 4, SSD1306_WHITE); // Right
+}
+
+// 2. Mini Cloud Icon
+void draw_mini_cloud(Adafruit_SSD1306 &display, int x, int y)
+{
+    display.fillCircle(x + 2, y + 4, 2, SSD1306_WHITE);  // Left puff
+    display.fillCircle(x + 5, y + 2, 3, SSD1306_WHITE);  // Center puff
+    display.fillCircle(x + 8, y + 4, 2, SSD1306_WHITE);  // Right puff
+    display.fillRect(x + 2, y + 4, 7, 2, SSD1306_WHITE); // Flat base
+}
+
+// 3. Mini Rain Icon (Cloud + Rain drops)
+void draw_mini_rain(Adafruit_SSD1306 &display, int x, int y)
+{
+    // Draw cloud base
+    display.fillCircle(x + 2, y + 3, 2, SSD1306_WHITE);
+    display.fillCircle(x + 5, y + 1, 3, SSD1306_WHITE);
+    display.fillCircle(x + 8, y + 3, 2, SSD1306_WHITE);
+    display.fillRect(x + 2, y + 3, 7, 2, SSD1306_WHITE);
+
+    // Draw falling rain streaks underneath
+    display.drawLine(x + 3, y + 7, x + 2, y + 8, SSD1306_WHITE);
+    display.drawLine(x + 6, y + 7, x + 5, y + 8, SSD1306_WHITE);
+}
+
+void DisplayBuilder::show_weather_screen(float current_temp, String condition,
+                                         int hour1, float temp1,
+                                         int hour2, float temp2,
+                                         int hour3, float temp3)
 {
     display.clearDisplay();
 
+    // 1. TOP HALF: Current Weather (0 to 31 Y-axis)
     draw_weather_icon();
 
     display.setTextColor(SSD1306_WHITE);
     display.setTextSize(2);
-    display.setCursor(60, 18);
-    display.print((int)temp);
+    display.setCursor(42, 2);
+    display.print((int)current_temp);
 
-    int16_t degreeX = display.getCursorX() + 2;
-    display.drawCircle(degreeX, 20, 2, SSD1306_WHITE);
-    display.setCursor(degreeX + 6, 18);
+    // Degree symbol (°)
+    int16_t degreeX = display.getCursorX() + 1;
+    display.drawCircle(degreeX, 4, 2, SSD1306_WHITE);
+    display.setCursor(degreeX + 5, 2);
     display.print("C");
 
+    // Condition String
     display.setTextSize(1);
-    display.setCursor(60, 42);
-
-    if (condition.length() > 10)
+    display.setCursor(42, 20);
+    if (condition.length() > 13)
     {
-        condition = condition.substring(0, 10);
+        condition = condition.substring(0, 13);
     }
     display.print(condition);
+
+    // Horizontal Divider
+    display.drawFastHLine(0, 31, 128, SSD1306_WHITE);
+
+    // 2. BOTTOM HALF: Stacked Vertical List (3 Rows with dynamic icons)
+    auto draw_stacked_row = [&](int y_pos, int hour, float temp, int icon_type)
+    {
+        char h_str[6];
+        snprintf(h_str, sizeof(h_str), "%02d:00", hour);
+
+        // Time on the left
+        display.setCursor(4, y_pos);
+        display.print(h_str);
+
+        // Render appropriate mini icon in the middle slot (X offset: ~54)
+        if (icon_type == 0)
+        {
+            draw_mini_sun(display, 54, y_pos);
+        }
+        else if (icon_type == 1)
+        {
+            draw_mini_cloud(display, 54, y_pos);
+        }
+        else
+        {
+            draw_mini_rain(display, 54, y_pos); // Fixed: using y_pos directly
+        }
+
+        // Temperature on the right
+        display.setCursor(88, y_pos);
+        display.print((int)temp);
+        display.print("C");
+    };
+    // Render 3 stacked rows (Passing different icon types: 0=Sun, 1=Cloud, 2=Rain)
+    display.setTextSize(1);
+    draw_stacked_row(35, hour1, temp1, 0); // Row 1: Sun icon
+    draw_stacked_row(45, hour2, temp2, 1); // Row 2: Cloud icon
+    draw_stacked_row(55, hour3, temp3, 2); // Row 3: Rain icon
 
     display.display();
 }

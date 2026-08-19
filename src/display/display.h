@@ -1,10 +1,9 @@
 #ifndef DISPLAY_BUILDER_H
 #define DISPLAY_BUILDER_H
 
-#include <Arduino.h>
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Wire.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -19,7 +18,12 @@ public:
     void setup_display();
     void update_display(String msg);
     void show_idle_screen();
-    void show_weather_screen(float temp, String condition);
+
+    // Displays Current Weather + Next 3 forecast blocks (Total: 4 items)
+    void show_weather_screen(float current_temp, String condition,
+                             int hour1, float temp1,
+                             int hour2, float temp2,
+                             int hour3, float temp3);
 
 private:
     Adafruit_SSD1306 display;
@@ -28,4 +32,4 @@ private:
     void draw_weather_icon();
 };
 
-#endif // DISPLAY_BUILDER_H
+#endif

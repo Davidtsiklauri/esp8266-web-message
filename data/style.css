@@ -28,7 +28,6 @@ body {
   padding: 16px;
 }
 
-/* Glassmorphism Card Container */
 .card {
   background: var(--card-bg);
   backdrop-filter: blur(12px);
@@ -55,7 +54,6 @@ h2 {
   gap: 8px;
 }
 
-/* Active Message Box */
 .msg-container {
   background: rgba(15, 23, 42, 0.6);
   border-radius: 12px;

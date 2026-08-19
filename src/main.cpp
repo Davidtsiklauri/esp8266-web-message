@@ -4,10 +4,16 @@
 #include "web/web.h"
 #include "display/display.h"
 #include "wifi/wifi_connection.h"
+#include "weather/weather_service.h"
 
 DisplayBuilder display_builder;
 Web web;
 WifiAdapter wifi_adapter;
+
+WeatherData cached_weather;
+unsigned long last_weather_fetch = 0;
+
+const unsigned long WEATHER_FETCH_INTERVAL = 6 * 60 * 60 * 1000UL;
 
 void setup()
 {
@@ -20,14 +26,23 @@ void setup()
   }
 
   wifi_adapter.setup_wifi_connection();
-  display_builder.setup_display();
 
+  display_builder.setup_display();
   web.setup_routes();
+
+  cached_weather = WeatherService::fetch_weather();
+  last_weather_fetch = millis();
 }
 
 void loop()
 {
   yield();
+
+  if (millis() - last_weather_fetch >= WEATHER_FETCH_INTERVAL)
+  {
+    last_weather_fetch = millis();
+    cached_weather = WeatherService::fetch_weather();
+  }
 
   if (web.needsDisplayUpdate)
   {
@@ -40,7 +55,15 @@ void loop()
       break;
 
     case MODE_WEATHER:
-      display_builder.show_weather_screen(24.0, "Sunny");
+      display_builder.show_weather_screen(
+          cached_weather.temp,
+          cached_weather.condition,
+          cached_weather.forecast_hour_1,
+          cached_weather.temp_forecast_1,
+          cached_weather.forecast_hour_2,
+          cached_weather.temp_forecast_2,
+          cached_weather.forecast_hour_3,
+          cached_weather.temp_forecast_3);
       break;
 
     case MODE_MESSAGE:
@@ -61,7 +84,15 @@ void loop()
     }
     else if (web.currentMode == MODE_WEATHER)
     {
-      display_builder.show_weather_screen(24.0, "Sunny");
+      display_builder.show_weather_screen(
+          cached_weather.temp,
+          cached_weather.condition,
+          cached_weather.forecast_hour_1,
+          cached_weather.temp_forecast_1,
+          cached_weather.forecast_hour_2,
+          cached_weather.temp_forecast_2,
+          cached_weather.forecast_hour_3,
+          cached_weather.temp_forecast_3);
     }
   }
 }
